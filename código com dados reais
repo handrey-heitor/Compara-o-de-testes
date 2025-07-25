@@ -1,0 +1,39 @@
+#Comparação de Médias em Dois Períodos
+dados <- read.csv("Amazon_stock_data.csv")
+
+# Converter a coluna Date para formato data
+dados$Date <- as.Date(dados$Date)
+
+
+# Separar os grupos
+grupo_antes <- subset(dados, Date < as.Date("2008-09-15"))$Close
+grupo_depois <- subset(dados, Date >= as.Date("2008-09-15"))$Close
+
+shapiro.test(grupo_antes)
+shapiro.test(grupo_depois)
+
+teste_t <- t.test(grupo_antes, grupo_depois, var.equal = FALSE)
+print(teste_t)
+
+teste_mw <- wilcox.test(grupo_antes, grupo_depois)
+print(teste_mw)
+
+boxplot(grupo_antes, grupo_depois,
+        names = c("Antes da crise", "Depois da crise"),
+        col = c("lightblue", "tomato"),
+        main = "Preço de Fechamento Antes x Depois da Crise")
+
+# Interpretação
+if (teste_t$p.value < 0.05) {
+  cat("O teste t indica diferença significativa entre os grupos.\n")
+} else {
+  cat("O teste t não indica diferença significativa.\n")
+}
+
+if (teste_mw$p.value < 0.05) {
+  cat("O teste de Mann-Whitney indica diferença significativa.\n")
+} else {
+  cat("O teste de Mann-Whitney não indica diferença significativa.\n")
+}
+
+
