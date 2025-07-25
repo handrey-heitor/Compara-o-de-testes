@@ -1,0 +1,85 @@
+library(tidyr)
+library(ggplot2)
+
+set.seed(42)
+
+# Parâmetros
+n <- 500          # tamanho de cada grupo
+n_sim <- 1000     # número de simulações
+alpha <- 0.05     # nível de significância
+
+# Contadores de rejeição
+rej_t <- 0
+rej_mw <- 0
+
+for (i in 1:n_sim) {
+  # Gerar os dados em cada simulação
+  grupo_1 <- rnorm(n, mean = 50, sd = 10)
+  grupo_2 <- rnorm(n, mean = 55, sd = 10)
+  
+  df_base <- data.frame(
+    grupo = c(rep("Grupo_A", n), rep("Grupo_B", n)),
+    valor = c(grupo_1, grupo_2)
+  )
+  
+  # Teste t de Student
+  p_t <- t.test(valor ~ grupo, data = df_base, var.equal = TRUE)$p.value
+  
+  # Teste de Mann-Whitney
+  p_mw <- wilcox.test(valor ~ grupo, data = df_base)$p.value
+  
+  # Contar rejeições
+  if (p_t < alpha) rej_t <- rej_t + 1
+  if (p_mw < alpha) rej_mw <- rej_mw + 1
+}
+# Criar um data frame para visualização
+df_plot <- data.frame(
+  Posição = 1:n,
+  Grupo_A = sort(grupo_1),
+  Grupo_B = sort(grupo_2)
+)
+
+df_long <- pivot_longer(df_plot, cols = c("Grupo_A", "Grupo_B"), 
+                        names_to = "Grupo", values_to = "Valor")
+
+# Plotar o gráfico de linhas
+ggplot(df_long, aes(x = Posição, y = Valor, color = Grupo)) +
+  geom_line(size = 1) +
+  labs(title = "Comparação entre Grupo A e Grupo B",
+       x = "Posição (ordenada)",
+       y = "Valor",
+       color = "Grupo") +
+  theme_minimal() +
+  scale_color_manual(values = c("steelblue", "tomato"))
+
+# Calcular o poder empírico (proporção de rejeições)
+poder_t <- rej_t / n_sim
+poder_mw <- rej_mw / n_sim
+
+# Mostrar os resultados
+cat("=== Poder empírico ===\n")
+cat("Teste t de Student: ", round(poder_t * 100, 2), "%\n")
+cat("Teste de Mann-Whitney: ", round(poder_mw * 100, 2), "%\n")
+
+# ==== Adicionando gráfico comparativo ====
+# Carregar biblioteca
+library(ggplot2)
+
+# Criar data frame com os resultados
+df_plot <- data.frame(
+  Teste = c("t de Student", "Mann-Whitney"),
+  Poder = c(poder_t, poder_mw)
+)
+
+# Criar gráfico de barras
+ggplot(df_plot, aes(x = Teste, y = Poder, fill = Teste)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  ylim(0, 1) +
+  geom_text(aes(label = paste0(round(Poder * 100, 1), "%")), 
+            vjust = -0.5, size = 5) +
+  labs(title = "Poder Empírico dos Testes (n = 500 por grupo)",
+       x = "Teste Estatístico",
+       y = "Poder Empírico") +
+  scale_fill_manual(values = c("#4CAF50", "#FF9800")) +
+  theme_minimal()
+
